@@ -220,6 +220,12 @@ def cmd_state(task_id, new_state, now_text=None):
         if now_text:
             t['now'] = now_text
         t['updatedAt'] = now_iso()
+
+        # 🔥 修复：当状态改为 Done/Blocked 时，禁用调度器
+        if new_state in ('Done', 'Blocked'):
+            if '_scheduler' in t:
+                t['_scheduler']['enabled'] = False
+                t['_scheduler']['lastProgressAt'] = now_iso()
         return tasks
     atomic_json_update(TASKS_FILE, modifier, [])
     save(load())  # trigger refresh
@@ -259,6 +265,11 @@ def cmd_done(task_id, output_path='', summary=''):
             "to": "皇上", "remark": f"✅ 完成：{summary or '任务已完成'}"
         })
         t['updatedAt'] = now_iso()
+
+        # 🔥 修复：任务完成时禁用调度器
+        if '_scheduler' in t:
+            t['_scheduler']['enabled'] = False
+            t['_scheduler']['lastProgressAt'] = now_iso()
         return tasks
     atomic_json_update(TASKS_FILE, modifier, [])
     save(load())  # trigger refresh
